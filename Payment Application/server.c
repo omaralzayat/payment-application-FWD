@@ -10,12 +10,12 @@ extern ST_transaction_t transData;
 extern ST_transaction_t* transDataptr;
 
 
-ST_accountsDB_t AccountsDB[255] = { {23432, "4003830171874018"},
-									{3453, "5496198584584769"},
-									{563324, "2223520043560014"},
-									{485, "3530111333300000"},
-									{5239857, "69384295385194873"},
-									{9320, "9384293857394857382"},
+ST_accountsDB_t AccountsDB[255] = { {23432, RUNNING, "4003830171874018"},
+									{3453, RUNNING, "5496198584584769"},
+									{563324, BLOCKED, "2223520043560014"},
+									{485, BLOCKED, "3530111333300000"},
+									{5239857, RUNNING, "69384295385194873"},
+									{9320, BLOCKED, "9384293857394857382"},
 };
 
 ST_transaction_t transactionDB[255] = { 0 };
@@ -29,11 +29,21 @@ EN_transState_t recieveTransactionData(ST_transaction_t* transData)
 	strcpy(message, "Approved");
 
 	if (isValidAccount(&transData->cardHolderData)) {
-		strcpy(message, "Declined: Invalid account");
-		printf("\n%s\n", message);
-		transData->transState = DECLINED_STOLEN_CARD;
-		saveTransaction(transData);
-		return DECLINED_STOLEN_CARD;
+		if (isValidAccount(cardDataptr) == BLOCKED_ACCOUNT) {
+			strcpy(message, "DECLINED: BLOCKED ACCOUNT");
+			printf("\n%s\n", message);
+			transData->transState = DECLINED_STOLEN_CARD;
+			saveTransaction(transData);
+			return DECLINED_STOLEN_CARD;
+		}
+		else
+		{
+			strcpy(message, "Declined: Invalid account");
+			printf("\n%s\n", message);
+			transData->transState = DECLINED_STOLEN_CARD;
+			saveTransaction(transData);
+			return FRAUD_CARD;
+		}
 	}
 	else if (isAmountAvailable(&transData->terminalData)) {
 		strcpy(message, "Declined: INSUFFECIENT FUND");
@@ -67,8 +77,14 @@ EN_serverError_t isValidAccount(ST_cardData_t* cardData)
 	int i;
 	for (i = 0; i < 255; i++) {
 		if (strcmp(cardData->primaryAccountNumber, AccountsDB[i].primaryAccountNumber) == 0) {
-			*userAccountptr = AccountsDB[i];
-			return OK_S;
+			if (AccountsDB[i].state == RUNNING) {
+				*userAccountptr = AccountsDB[i];
+				return OK_S;
+			}
+			else
+			{
+				return BLOCKED_ACCOUNT;
+			}
 		}
 	}
 	return ACCOUNT_NOT_FOUND;

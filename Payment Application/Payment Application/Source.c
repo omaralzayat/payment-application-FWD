@@ -2,8 +2,10 @@
 #include "../app.h"
 #include "../server.h"
 
+ST_terminalData_t termData;
 
 int main() {
-	appStart();
+	//appStart();
+	setMaxAmount(&termData);
 	return 0;
 }
